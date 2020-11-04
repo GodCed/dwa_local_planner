@@ -84,6 +84,7 @@ namespace dwa_local_planner {
     obstacle_costs_.setParams(config.max_vel_trans, config.max_scaling_factor, config.scaling_speed);
 
     twirling_costs_.setScale(config.twirling_scale);
+    yaw_costs_.setScale(config.global_yaw_scale);
 
     int vx_samp, vy_samp, vth_samp;
     vx_samp = config.vx_samples;
@@ -171,6 +172,7 @@ namespace dwa_local_planner {
     critics.push_back(&path_costs_); // prefers trajectories on global path
     critics.push_back(&goal_costs_); // prefers trajectories that go towards (local) goal, based on wave propagation
     critics.push_back(&twirling_costs_); // optionally prefer trajectories that don't spin
+    critics.push_back(&yaw_costs_); // optionnaly prefer trajectories that stick to the global plan yaw
 
     // trajectory generators
     std::vector<base_local_planner::TrajectorySampleGenerator*> generator_list;
@@ -254,6 +256,8 @@ namespace dwa_local_planner {
     goal_costs_.setTargetPoses(global_plan_);
 
     // alignment costs
+    yaw_costs_.setGoalPoses(global_plan_);
+
     geometry_msgs::PoseStamped goal_pose = global_plan_.back();
 
     Eigen::Vector3f pos(global_pose.pose.position.x, global_pose.pose.position.y, tf2::getYaw(global_pose.pose.orientation));
@@ -310,6 +314,7 @@ namespace dwa_local_planner {
         goal,
         &limits,
         vsamples_);
+    yaw_costs_.setCurrentPose(global_pose);
 
     result_traj_.cost_ = -7;
     // find best trajectory by sampling and scoring the samples
