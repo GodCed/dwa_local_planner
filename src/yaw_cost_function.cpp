@@ -35,18 +35,15 @@
  * Author: Cedric Godin
  *********************************************************************/
 
-
 #include <dwa_local_planner/yaw_cost_function.h>
 #include <angles/angles.h>
 #include <tf2/utils.h>
-
 
 using namespace base_local_planner;
 using namespace geometry_msgs;
 using namespace tf2;
 using namespace angles;
 using namespace std;
-
 
 /**
  * @brief Set the current robot pose
@@ -58,7 +55,6 @@ void YawCostFunction::setCurrentPose(const geometry_msgs::PoseStamped current_po
     current_pose_ = current_pose;
 }
 
-
 /**
  * @brief Set the goal poses against which the cost function will score given trajectories
  * 
@@ -68,7 +64,6 @@ void YawCostFunction::setGoalPoses(const vector<PoseStamped> goal_poses)
 {
     goal_poses_ = goal_poses;
 }
-
 
 /**
  * @brief Prepare this cost function to score a trajectory
@@ -81,7 +76,6 @@ bool YawCostFunction::prepare()
 {
     return true;
 }
-
 
 /**
  * @brief Scores the given trajectory according to its respect of the goal poses orientation
@@ -112,20 +106,17 @@ double YawCostFunction::scoreTrajectory(Trajectory &traj)
 
     // Trajectory velocity
     double vth = fabs(traj.thetav_);
-    double vtrans = sqrt(traj.xv_*traj.xv_ + traj.yv_*traj.yv_);
+    double vtrans = sqrt(traj.xv_ * traj.xv_ + traj.yv_ * traj.yv_);
 
     // Cost according to if the trajectory steers in the correct direction
-    double thcost = fabs(shortest_angular_distance(endth, gth));
+    double delta_theta = fabs(shortest_angular_distance(endth, gth));
+    double thcost = orientation_scale_ * delta_theta;
 
     // Cost according to the translation velocity
-    double vcost = 10*vtrans*thcost;
+    double vcost = delta_theta < M_PI_4 ? velocity_scale_ * max(0.0, max_lin_vel_ - vtrans) : 1000.0;
 
-    // Cost if the robot is drunk and turning away from the target
-    double wrongcost = traj.thetav_ * shortest_angular_distance(endth, gth) >= 0 ? 0.0: 100.0;
-
-    return thcost*(2-vth) + vcost + wrongcost;
+    return thcost + vcost;
 }
-
 
 /**
  * @brief Get the pose from goal_poses_ closest to the current_pose_
@@ -148,7 +139,7 @@ double YawCostFunction::closestToCurrent(PoseStamped &closest) const
     {
         double dx = goal_pose.pose.position.x - current_pose_.pose.position.x;
         double dy = goal_pose.pose.position.y - current_pose_.pose.position.y;
-        double distance = sqrt(dx*dx + dy*dy);
+        double distance = sqrt(dx * dx + dy * dy);
 
         if (distance < closest_distance)
         {

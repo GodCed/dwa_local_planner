@@ -42,25 +42,54 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <vector>
 
-namespace base_local_planner {
+namespace base_local_planner
+{
+    /**
+    * This class provides a cost function that aim at following the orientation contained in the global plan.
+    */
+    class YawCostFunction : public base_local_planner::TrajectoryCostFunction
+    {
+    public:
+        void setCurrentPose(const geometry_msgs::PoseStamped current_pose);
+        void setGoalPoses(const std::vector<geometry_msgs::PoseStamped> goal_poses);
 
-/**
- * This class provides a cost function that aim at following the orientation contained in the global plan.
- */
-class YawCostFunction: public base_local_planner::TrajectoryCostFunction {
-public:
-    void setCurrentPose(const geometry_msgs::PoseStamped current_pose);
-    void setGoalPoses(const std::vector<geometry_msgs::PoseStamped> goal_poses);
-    
-    double scoreTrajectory(Trajectory &traj) override;
-    bool prepare() override;
+        double scoreTrajectory(Trajectory &traj) override;
+        bool prepare() override;
 
-private:
-    geometry_msgs::PoseStamped current_pose_;
-    std::vector<geometry_msgs::PoseStamped> goal_poses_;
+        inline void setOrientationScale(double scale)
+        {
+            orientation_scale_ = scale;
+        }
 
-    double closestToCurrent(geometry_msgs::PoseStamped &closest) const;
-};
+        inline void setVelocityScale(double scale)
+        {
+            velocity_scale_ = scale;
+        }
+
+        inline void setRobotParameters(double max_lin_vel, double max_lin_acc)
+        {
+            max_lin_vel_ = max_lin_vel;
+            max_lin_acc_ = max_lin_acc;
+        }
+
+        inline void setCurrentLinVel(double current_lin_vel)
+        {
+            current_lin_vel_ = current_lin_vel;
+        }
+
+    private:
+        double orientation_scale_;
+        double velocity_scale_;
+
+        double max_lin_vel_;
+        double max_lin_acc_;
+        double current_lin_vel_;
+
+        geometry_msgs::PoseStamped current_pose_;
+        std::vector<geometry_msgs::PoseStamped> goal_poses_;
+
+        double closestToCurrent(geometry_msgs::PoseStamped &closest) const;
+    };
 
 } /* namespace base_local_planner */
 #endif /* YAW_COST_FUNCTION_H */
